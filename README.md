@@ -18,7 +18,69 @@ src/
 ```
 ---
 
-## 📌 File: `src/components/admin/Sertifikat.tsx`
+## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+
+Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+
+### Code
+
+```tsx
+import { useState } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
+import DashboardContent from "./DashboardContent";
+import TetangKami from "./TetangKami";
+import Konsultasi from "./Konsultasi";
+import KontakKami from "./KontakKami";
+import SocialConnect from "./SocialConnect";
+import ProjectBimble from "./ProjectBimble";
+import ProgramContent from "./ProgramContent";
+import SettingsContent from "./SettingsContent";
+import { SearchProvider } from "../../context/SearchContext";
+import ProtectedRoute from "../ProtectedRoute";
+import "../styles/styleAdmin.css";
+import Logs from "./Logs";
+import Sertifikat from "./Sertifikat";
+
+const Dashboard: React.FC = () => {
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+
+  return (
+    <SearchProvider>
+      <div className="dashboard">
+        <ProtectedRoute>
+          <>
+            <Sidebar isOpen={isOpen} toggleSidebar={() => setIsOpen(!isOpen)} />
+            <main className="main-content">
+              <Header />
+              <Routes>
+                <Route path="/" element={<DashboardContent />} />
+                <Route path="/tetangkami" element={<TetangKami />} />
+                <Route path="/konsultasi" element={<Konsultasi />} />
+                <Route path="/projectbimble" element={<ProjectBimble />} />
+                <Route path="/programLainnya" element={<ProgramContent />} />
+                <Route path="/kontakKami" element={<KontakKami />} />
+                <Route path="/socialconnect" element={<SocialConnect />} />
+                <Route path="/settings" element={<SettingsContent />} />
+                <Route path="/logs" element={<Logs />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="/sertifikat" element={<Sertifikat />} />
+              </Routes>
+            </main>
+          </>
+        </ProtectedRoute>
+      </div>
+    </SearchProvider>
+  );
+};
+
+export default Dashboard;
+```
+
+---
+
+## 📌 Sertifikat.tsx: `src/components/admin/Sertifikat.tsx`
 
 Deskripsi singkat halaman sertifikat, misalnya:
 
@@ -559,7 +621,7 @@ export default SertifikatPage;
 
 
 
-## 📌 File: `src/admin/SertifPageManagement.tsx`
+## 📌 SertifPageManagement.tsx: `src/admin/SertifPageManagement.tsx`
 
 untuk management page sertifikat, file ini hanya component yang nantinya  dipanggil di Sertifikat.tsx
 
@@ -946,21 +1008,9 @@ export default SertifPageManagement;
 
 
 
-## 📌 API Endpoint: `src/components/admin/Sidebar.tsx`
+## 📌 Sidebar.tsx: `src/components/admin/Sidebar.tsx`
 
 Add Sesi Sertifikat di admin YMP (Update Sidebar).
-
-### Code
-
-```ts
-// paste kode asli file ini di sini
-```
-
----
-
-## 📌 API: `src/api/certificate/createCertificate.ts`
-
-Logika backend untuk generasi sertifikat.
 
 ### Code
 
@@ -1149,6 +1199,26 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </NavLink>
           </li>
 
+          <li
+            className={
+              location.pathname === "/dashboard/ctf-ranking" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/ctf-ranking">
+              <TbMilitaryRank  />
+              {isOpen && <span>CTF Ranking</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/ctf-playground" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/ctf-playground">
+              <PiGameControllerFill />
+              {isOpen && <span>CTF Playground</span>}
+            </NavLink>
+          </li>
           <li
             className={
               location.pathname === "/dashboard/projectbimble" ? "active" : ""
