@@ -13,6 +13,7 @@ src/
     admin/
       Sertifikat.tsx
       SertifPageManagement.tsx
+      Sidebar.tsx
 ```
 ---
 
@@ -553,6 +554,9 @@ export default SertifikatPage;
 ```
 
 ---
+> **API yang diambil di page ini:** [localhost:5000/api/sertifikat](http://localhost:5000/api/sertifikat)
+
+
 
 ## 📌 File: `src/admin/SertifPageManagement.tsx`
 
@@ -937,13 +941,13 @@ export default SertifPageManagement;
 
 ---
 
+> **API yang diambil di page ini:** [http://localhost:5000/api/page-management](http://localhost:5000/api/page-management)
 
-# API yang diambil di page ini : localhost:5000/api/page-management
 
 
-## 📌 API Endpoint: `src/api/certificate/index.ts`
+## 📌 API Endpoint: `src/components/admin/Sidebar.tsx`
 
-Routing untuk modul sertifikat.
+Add Sesi Sertifikat di admin YMP (Update Sidebar).
 
 ### Code
 
@@ -959,8 +963,270 @@ Logika backend untuk generasi sertifikat.
 
 ### Code
 
-```ts
-// paste kode asli file ini di sini
+```tsx
+import { FC, useState, useRef, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
+import {
+  FiMenu,
+  FiHome,
+  FiUsers,
+  FiMessageSquare,
+  FiShoppingBag,
+  FiLogOut,
+  FiActivity,
+  FiChevronRight,
+} from "react-icons/fi";
+import { IoIosArrowDropdown } from "react-icons/io";
+import { PiGameControllerFill } from "react-icons/pi";
+
+import { TbMilitaryRank } from "react-icons/tb";
+
+import {
+  MdOutlineWidgets,
+  MdPhonelinkSetup,
+  MdOutlineConnectWithoutContact,
+} from "react-icons/md";
+import { LuSettings2 } from "react-icons/lu";
+import { GrCertificate } from "react-icons/gr";
+import Swal from "sweetalert2";
+import Yukmari from "../../assets/YukMari.svg";
+
+interface SidebarProps {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+}
+
+const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+  const location = useLocation();
+  const [isPageOpen, setIsPageOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const dropdownRef = useRef<HTMLLIElement>(null);
+
+  // Track window resize for responsive behavior
+  useEffect(() => {
+    function handleResize() {
+      setWindowWidth(window.innerWidth);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsPageOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Check if current route is in the dropdown menu
+  useEffect(() => {
+    if (
+      location.pathname === "/dashboard/navigasi" ||
+      location.pathname === "/dashboard/footer"
+    ) {
+      setIsPageOpen(true);
+    }
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: "Apakah Anda yakin ingin logout?",
+      text: "Anda harus login kembali untuk mengakses dashboard!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Ya, Logout!",
+      cancelButtonText: "Batal",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/api/logout`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+          }
+        );
+
+        if (response.ok) {
+          localStorage.clear();
+          window.location.href = "/?logoutSuccess=true";
+        } else {
+          Swal.fire("Error", "Logout gagal, silakan coba lagi.", "error");
+        }
+      } catch (error) {
+        Swal.fire("Error", "Terjadi kesalahan saat logout.", "error");
+      }
+    }
+  };
+
+  // Determine if we should use mobile view dropdown behavior
+  const isMobileView = windowWidth <= 768;
+
+  return (
+    <aside className={`sidebar ${!isOpen ? "collapsed" : ""}`}>
+      <div className="sidebar-header">
+        {isOpen && <img src={Yukmari} alt="Yukmari" />}
+        <button className="toggle-btn" onClick={toggleSidebar}>
+          <FiMenu />
+        </button>
+      </div>
+      <nav className="sidebar-nav">
+        <ul>
+          <li className={location.pathname === "/dashboard" ? "active" : ""}>
+            <NavLink to="/dashboard">
+              <FiHome />
+              {isOpen && <span>Beranda</span>}
+            </NavLink>
+          </li>
+
+          {/* <li ref={dropdownRef} className={`dropdown ${isPageOpen ? 'active' : ''}`}>
+            <button className="dropdown-toggle" onClick={() => setIsPageOpen(!isPageOpen)}>
+              <IoIosArrowDropdown />
+              {isOpen && <span>Page</span>}
+              {isOpen && <FiChevronRight className={`ml-auto transition-transform ${isPageOpen ? 'rotate-90' : ''}`} />}
+            </button>
+            <ul className="dropdown-menu">
+              <li className={location.pathname === '/dashboard/navigasi' ? 'active' : ''}>
+                <NavLink to="/dashboard/navigasi">
+                  {isMobileView || isOpen ? 'Navigasi (RU)' : 'Nav'}
+                </NavLink>
+              </li>
+              <li className={location.pathname === '/dashboard/footer' ? 'active' : ''}>
+                <NavLink to="/dashboard/footer">
+                  {isMobileView || isOpen ? 'Footer (RU)' : 'Footer'}
+                </NavLink>
+              </li>
+            </ul>
+          </li> */}
+
+          <li
+            className={
+              location.pathname === "/dashboard/tetangkami" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/tetangkami">
+              <FiUsers />
+              {isOpen && <span>Tentang Kami</span>}
+            </NavLink>
+          </li>
+
+          <li
+            className={
+              location.pathname === "/dashboard/konsultasi" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/konsultasi">
+              <FiMessageSquare />
+              {isOpen && <span>Konsultasi</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/sertifikat" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/sertifikat">
+              <GrCertificate />
+              {isOpen && <span>Sertifikat</span>}
+            </NavLink>
+          </li>
+
+          <li
+            className={
+              location.pathname === "/dashboard/projectbimble" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/projectbimble">
+              <FiShoppingBag />
+              {isOpen && <span>Project & Bimble</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/programLainnya" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/programLainnya">
+              <MdOutlineWidgets />
+              {isOpen && <span>Program Lainnya</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/kontakKami" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/kontakKami">
+              <MdPhonelinkSetup />
+              {isOpen && <span>Kontak Kami</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/socialconnect" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/socialconnect">
+              <MdOutlineConnectWithoutContact />
+              {isOpen && <span>Social Connect</span>}
+            </NavLink>
+          </li>
+          <li
+            className={
+              location.pathname === "/dashboard/settings" ? "active" : ""
+            }
+          >
+            <NavLink to="/dashboard/settings">
+              <LuSettings2 />
+              {isOpen && <span>Pengaturan</span>}
+            </NavLink>
+          </li>
+          <li
+            className={location.pathname === "/dashboard/logs" ? "active" : ""}
+          >
+            <NavLink to="/dashboard/logs">
+              <FiActivity />
+              {isOpen && <span>Logs</span>}
+            </NavLink>
+          </li>
+          <ul className="bottom-menu">
+            <li>
+              <NavLink
+                to="/"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleLogout();
+                }}
+              >
+                <FiLogOut />
+                {isOpen && <span>Logout</span>}
+              </NavLink>
+            </li>
+          </ul>
+        </ul>
+      </nav>
+    </aside>
+  );
+};
+
+export default Sidebar;
 ```
 
 ---
