@@ -12,6 +12,7 @@ src/
   components/
     admin/
       Sertifikat.tsx
+      SertifPageManagement.tsx
 ```
 ---
 
@@ -553,17 +554,392 @@ export default SertifikatPage;
 
 ---
 
-## 📌 File: `src/lib/generateCertificate.ts`
+## 📌 File: `src/admin/SertifPageManagement.tsx`
 
-Fungsi helper untuk generate sertifikat (canvas/pdf/svg, dll).
+untuk management page sertifikat, file ini hanya component yang nantinya  dipanggil di Sertifikat.tsx
 
 ### Code
 
-```ts
-// paste kode asli file ini di sini
+```tsx
+import React, { FC, useState, useEffect, useMemo } from 'react';
+import Table from './Table';
+import Modal from 'react-modal';
+import { Column } from 'react-table';
+import axios from 'axios';
+import { useSearch } from '../../context/SearchContext';
+
+interface PageData {
+  id: number;
+  section: string;
+  field_name: string;
+  content: string;
+}
+
+const SertifPageManagement: FC = () => {
+  const [data, setData] = useState<PageData[]>([]);
+  const [editingItem, setEditingItem] = useState<PageData | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveConfirm, setSaveConfirm] = useState(false);
+  const { searchQuery } = useSearch();
+
+  const api = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    timeout: 5000,
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  const fetchData = async () => {
+    try {
+      const res = await api.get('/api/page-management');
+      setData(res.data.sort((a: PageData, b: PageData) => a.id - b.id));
+    } catch (err) {
+      console.error('Error fetching page data:', err);
+      alert('Gagal memuat data halaman');
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleEditClick = (item: PageData) => {
+    setEditingItem(item);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editingItem) return;
+
+    setIsLoading(true);
+    try {
+      const res = await api.put(`/api/page-management/${editingItem.id}`, editingItem);
+      if (res.status === 200) {
+        await fetchData();
+        setIsEditModalOpen(false);
+        setSaveConfirm(false);
+        setEditingItem(null);
+
+        // Success notification
+        alert('Perubahan berhasil disimpan!');
+      }
+    } catch (err: any) {
+      console.error('Update failed:', err);
+      alert(`Gagal menyimpan perubahan: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveConfirm = () => {
+    setSaveConfirm(true);
+  };
+
+  const getFieldDisplayName = (fieldName: string) => {
+    const fieldNames: { [key: string]: string } = {
+      // Sertifikat Section
+      'header': 'Judul Header',
+      'description_1': 'Deskripsi Halaman',
+      'input_placeholder': 'Placeholder Input',
+      'btn_label_1': 'Label Button 1',
+      'button': 'Text Button',
+
+      // Detail Sertifikat Section
+      'title_success': 'Judul Success',
+      'label_certificate_id': 'Label Nomor Sertifikat',
+      'label_name': 'Label Nama Peserta',
+      'label_category': 'Label Kategori',
+      'label_status': 'Label Status',
+      'description_success': 'Deskripsi Success',
+
+        // Field baru untuk detail_sertifikat
+      'title_error': 'Judul Error',
+      'title_invalid': 'Judul Invalid',
+      'title_unknown': 'Judul Unknown Response',
+      'message_loading': 'Pesan Loading',
+      'message_empty_input': 'Pesan Input Kosong',
+      'message_success': 'Pesan Success',
+      'message_contact': 'Pesan Kontak',
+      'message_invalid': 'Pesan Invalid',
+      'message_error': 'Pesan Error',
+      'message_unknown': 'Pesan Unknown Response',
+      'message_connection_error': 'Pesan Koneksi Error',
+      'button_open_drive': 'Text Button Google Drive',
+      'preview_title': 'Judul Preview',
+      'preview_unavailable': 'Pesan Preview Tidak Tersedia',
+      'preview_click_here': 'Text Link Preview'
+    };
+
+    return fieldNames[fieldName] || fieldName;
+  };
+
+  const getSectionDisplayName = (section: string) => {
+    const sectionNames: { [key: string]: string } = {
+      'sertifikat': 'Page Management',
+      'detail_sertifikat': 'Detail Sertifikat Management'
+    };
+
+    return sectionNames[section] || section;
+  };
+
+  const columns: Column<PageData>[] = [
+    {
+      Header: 'ID',
+      accessor: 'id',
+      width: 70
+    },
+    {
+      Header: 'Field',
+      accessor: 'field_name',
+      Cell: ({ value }) => (
+        <div>
+          <div className="font-medium text-gray-900">{getFieldDisplayName(value)}</div>
+          <div className="text-xs text-gray-500 font-mono">{value}</div>
+        </div>
+      )
+    },
+    {
+      Header: 'Konten',
+      accessor: 'content',
+      Cell: ({ value }) => (
+        <div className="max-w-xs">
+          <div className="truncate" title={value}>
+            {value}
+          </div>
+        </div>
+      )
+    },
+    {
+      Header: 'Aksi',
+      width: 100,
+      Cell: ({ row }) => (
+        <button
+          onClick={() => handleEditClick(row.original)}
+          className="inline-flex items-center gap-1 bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          Edit
+        </button>
+      ),
+    },
+  ];
+
+  const filteredData = useMemo(() => {
+    return data.filter((item) =>
+      Object.values(item).some((value) =>
+        value.toString().toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    );
+  }, [searchQuery, data]);
+
+  const sertifikatData = useMemo(() =>
+    filteredData.filter(item => item.section === 'sertifikat'),
+    [filteredData]
+  );
+
+  const detailSertifikatData = useMemo(() =>
+    filteredData.filter(item => item.section === 'detail_sertifikat'),
+    [filteredData]
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50/30 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Page Content Management</h1>
+          <p className="text-gray-600 mt-2">
+            Kelola konten dinamis untuk halaman sertifikat dan detail sertifikat
+          </p>
+        </div>
+
+        {/* Page Management Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-8 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Page Management</h2>
+                <p className="text-gray-600 text-sm">
+                  Kelola konten untuk halaman utama sertifikat
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {sertifikatData.length > 0 ? (
+              <Table
+                columns={columns}
+                data={sertifikatData}
+                className="compact-table"
+              />
+            ) : (
+              <div className="text-center py-12">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500 text-lg font-medium">Tidak ada data</p>
+                <p className="text-gray-400 text-sm mt-1">Data akan muncul di sini</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Detail Sertifikat Management Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-8 bg-green-500 rounded-full"></div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Detail Sertifikat Management</h2>
+                <p className="text-gray-600 text-sm">
+                  Kelola konten untuk halaman detail sertifikat
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6">
+            {detailSertifikatData.length > 0 ? (
+              <Table
+                columns={columns}
+                data={detailSertifikatData}
+                className="compact-table"
+              />
+            ) : (
+              <div className="text-center py-12">
+                <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-500 text-lg font-medium">Tidak ada data</p>
+                <p className="text-gray-400 text-sm mt-1">Data akan muncul di sini</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Edit Modal */}
+        <Modal
+          isOpen={isEditModalOpen}
+          onRequestClose={() => {
+            setIsEditModalOpen(false);
+            setSaveConfirm(false);
+            setEditingItem(null);
+          }}
+          className="modal p-4 rounded-2xl shadow-2xl w-full max-w-md mx-auto my-8 bg-white"
+          overlayClassName="modal-overlay fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center p-4 backdrop-blur-sm"
+          ariaHideApp={false}
+        >
+          {!saveConfirm ? (
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">Edit Konten</h2>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleSaveConfirm(); }} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Field</label>
+                  <input
+                    type="text"
+                    value={editingItem ? getFieldDisplayName(editingItem.field_name) : ''}
+                    disabled
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Konten</label>
+                  <textarea
+                    value={editingItem?.content || ''}
+                    onChange={(e) =>
+                      setEditingItem((prev) => ({ ...prev!, content: e.target.value }))
+                    }
+                    required
+                    rows={4}
+                    className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical transition-colors"
+                    placeholder="Masukkan konten..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditModalOpen(false);
+                      setEditingItem(null);
+                    }}
+                    className="px-6 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : (
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Konfirmasi Penyimpanan</h3>
+              <p className="text-gray-600 mb-6">
+                Apakah Anda yakin ingin menyimpan perubahan pada konten ini?
+              </p>
+
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => setSaveConfirm(false)}
+                  className="px-6 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Kembali Edit
+                </button>
+                <button
+                  onClick={handleEditSubmit}
+                  disabled={isLoading}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Ya, Simpan Perubahan'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+      </div>
+    </div>
+  );
+};
+
+export default SertifPageManagement;
 ```
 
 ---
+
+
+# API yang diambil di page ini : localhost:5000/api/page-management
+
 
 ## 📌 API Endpoint: `src/api/certificate/index.ts`
 
