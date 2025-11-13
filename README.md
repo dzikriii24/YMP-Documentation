@@ -11,6 +11,7 @@ Struktur folder untuk modul **Sertifikat**:
 src/
   components/
     admin/
+      CardAdmin.tsx
       Sertifikat.tsx
       SertifPageManagement.tsx
       Sidebar.tsx
