@@ -2005,3 +2005,835 @@ export default app;
 ```
 
 ---
+
+
+
+
+
+# Frontend (ymp_web_dev)
+
+> **Catatan:** Dokumentasi bagian frontend website yuk-mari-project
+---
+
+## 📁 Folder Structure
+
+Struktur folder untuk modul **Frontend Sertifikat**:
+
+```
+assets/
+  js/
+    virtual-classroom/
+      sertifikat_cek.js
+  .env
+  cek-sertifikat-s-proses.php
+  cek-sertifikat-seminar.php
+  cek-sertifikat.php
+  database.php
+  sertif-page-management.php
+  Sertifikat.php
+```
+---
+
+## 📌 sertifikat_cek.js: `assets/js/virtual-classroom/sertifikat_cek.js`
+
+
+### Code
+
+```js
+$(document).ready(function() {
+    let dynamicContent = {};
+    
+    // Load dynamic content dari PHP
+    function loadDynamicContent() {
+        $.ajax({
+            url: 'sertif-page-management.php',
+            type: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                dynamicContent = response;
+            },
+            error: function() {
+                console.warn('Gagal memuat konten dinamis, menggunakan fallback');
+                // Fallback content
+                dynamicContent = {
+                    title_success: 'Sertifikat Ditemukan!',
+                    title_invalid: 'Sertifikat Tidak Ditemukan',
+                    title_error: '⚠️ Terjadi Kesalahan',
+                    title_unknown: 'Respons Tidak Dikenali',
+                    label_certificate_id: 'Nomor Sertifikat:',
+                    label_name: 'Nama Peserta:',
+                    label_category: 'Kategori:',
+                    label_status: 'Status:',
+                    message_loading: '🔍 Memeriksa sertifikat...',
+                    message_empty_input: 'Masukkan ID sertifikat terlebih dahulu.',
+                    message_success: 'Anda sudah mengikuti kegiatan.',
+                    message_contact: 'Jika ingin meminta kembali sertifikat, silakan hubungi kami.',
+                    message_invalid: 'Silakan ikuti kegiatan terlebih dahulu.',
+                    message_error: 'Terjadi kesalahan saat memverifikasi sertifikat.',
+                    message_unknown: 'Respons tidak dikenali dari server.',
+                    message_connection_error: 'Terjadi kesalahan koneksi',
+                    button_open_drive: 'Buka di Google Drive',
+                    preview_title: 'Preview Sertifikat:',
+                    preview_unavailable: 'Tidak dapat menampilkan preview.',
+                    preview_click_here: 'Klik di sini untuk membuka file'
+                };
+            }
+        });
+    }
+
+    // Panggil saat halaman load
+    loadDynamicContent();
+
+    $('#form-cek-sertifikat-seminar').on('submit', function(e) {
+        e.preventDefault();
+        const certificateID = $('#certificateID').val().trim();
+
+        if (!certificateID) {
+            $('#result').html(`
+                <div class="alert alert-warning">
+                    ${dynamicContent.message_empty_input || 'Masukkan ID sertifikat terlebih dahulu.'}
+                </div>
+            `);
+            return;
+        }
+
+        $('#result').html(`
+            <div class="alert alert-info">
+                ${dynamicContent.message_loading || '🔍 Memeriksa sertifikat...'}
+            </div>
+        `);
+
+        $.ajax({
+            url: 'cek-sertifikat-s-proses.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { certificateID },
+            success: function(response) {
+                console.log("Response dari server:", response);
+                
+                if (response.status === 'valid') {
+                    const driveLink = response.drive_link || response.link || '';
+                    const embedUrl = getDriveEmbedLink(driveLink);
+                    let previewHTML = '';
+                    
+                    if (embedUrl) {
+                        previewHTML = `
+                            <div class="">
+                                <p class="mt-3 mb-0">
+                                    <a href="${driveLink}" target="_blank" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-external-link-alt me-1"></i>
+                                        ${dynamicContent.button_open_drive || 'Buka di Google Drive'}
+                                    </a>
+                                </p>
+                            </div>
+                        `;
+                    } else if (driveLink) {
+                        previewHTML = `
+                            <div class="alert alert-secondary mt-3">
+                                ${dynamicContent.preview_unavailable || 'Tidak dapat menampilkan preview.'} 
+                                <a href="${driveLink}" target="_blank" class="alert-link">
+                                    ${dynamicContent.preview_click_here || 'Klik di sini untuk membuka file'}
+                                </a>
+                            </div>
+                        `;
+                    }
+
+                    $('#result').html(`
+                        <div class="alert alert-success">
+                            <strong>${dynamicContent.title_success || 'Sertifikat Ditemukan!'}</strong><br>
+                            ${dynamicContent.label_certificate_id || 'Nomor Sertifikat:'} <b>${response.certificateID}</b><br>
+                            ${dynamicContent.label_name || 'Nama Peserta:'} <b>${response.name}</b><br>
+                            ${dynamicContent.label_category || 'Kategori:'} <b>${response.category}</b><br>
+                            ${dynamicContent.label_status || 'Status:'} <b>${response.status_peserta}</b><br>
+                            ${dynamicContent.message_success || 'Anda sudah mengikuti kegiatan.'}<br>
+                            ${dynamicContent.message_contact || 'Jika ingin meminta kembali sertifikat, silakan hubungi kami.'}
+                        </div>
+                        ${previewHTML}
+                    `);
+                } 
+                else if (response.status === 'invalid') {
+                    $('#result').html(`
+                        <div class="alert alert-danger">
+                            <strong>${dynamicContent.title_invalid || 'Sertifikat Tidak Ditemukan'}</strong><br>
+                            ID yang Anda masukkan: <b>${response.input || certificateID}</b><br>
+                            ${dynamicContent.message_invalid || 'Silakan ikuti kegiatan terlebih dahulu.'}
+                        </div>
+                    `);
+                } 
+                else if (response.status === 'error') {
+                    $('#result').html(`
+                        <div class="alert alert-warning">
+                            <strong>${dynamicContent.title_error || '⚠️ Terjadi Kesalahan'}</strong><br>
+                            ${dynamicContent.message_error || 'Terjadi kesalahan saat memverifikasi sertifikat.'}<br>
+                            <small class="text-muted">Pesan: ${response.message}</small>
+                        </div>
+                    `);
+                } 
+                else {
+                    $('#result').html(`
+                        <div class="alert alert-info">
+                            <strong>${dynamicContent.title_unknown || 'Respons Tidak Dikenali'}</strong><br>
+                            ${dynamicContent.message_unknown || 'Respons tidak dikenali dari server.'}
+                        </div>
+                    `);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("XHR:", xhr.responseText);
+                $('#result').html(`
+                    <div class="alert alert-danger">
+                        <strong>${dynamicContent.message_connection_error || 'Terjadi Kesalahan Koneksi'}</strong><br>
+                        Error: ${error}<br>
+                        <small class="text-muted">
+                            ${xhr.responseText ? xhr.responseText.substring(0, 200) : 'Tidak ada response dari server'}
+                        </small>
+                    </div>
+                `);
+            }
+        });
+    });
+
+    function getDriveEmbedLink(url) {
+        if (!url) return '';
+        const regexPatterns = [
+            /\/d\/([a-zA-Z0-9_-]{25,})/,      // file/d/FILE_ID/
+            /id=([a-zA-Z0-9_-]{25,})/,        // id=FILE_ID
+            /open\?id=([a-zA-Z0-9_-]{25,})/,  // open?id=FILE_ID
+            /uc\?id=([a-zA-Z0-9_-]{25,})/     // uc?id=FILE_ID
+        ];
+        let fileId = null;
+        for (const pattern of regexPatterns) {
+            const match = url.match(pattern);
+            if (match && match[1]) {
+                fileId = match[1];
+                break;
+            }
+        }
+        if (!fileId) return '';
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+});
+```
+
+---
+
+## 📌 cek-sertifikat-s-proses.php: `cek-sertifikat-s-proses.php`
+
+
+### Code
+
+```php
+<?php
+header("Content-Type: application/json");
+header("Cache-Control: no-cache, must-revalidate");
+header("Expires: 0");
+
+require_once 'database.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $certificateID = $_POST['certificateID'] ?? '';
+    if (preg_match('/^YMP-S-\d+$/', $certificateID)) {
+        $numericID = preg_replace('/\D/', '', $certificateID);
+        try {
+            $sql = "SELECT kode, nama, status, event, link, created_at 
+                    FROM sertifikat 
+                    WHERE kode = :kode";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([':kode' => $numericID]);
+            $certificate = $stmt->fetch();
+            if ($certificate) {
+                $result = [
+                    'status' => 'valid',
+                    'certificateID' => 'YMP-S-' . $certificate['kode'],
+                    'name' => $certificate['nama'],
+                    'category' => $certificate['event'],
+                    'status_peserta' => $certificate['status'],
+                    'link' => $certificate['link'],
+                    'created_at' => $certificate['created_at']
+                ];
+                echo json_encode($result);
+            } else {
+                echo json_encode([
+                    'status' => 'invalid',
+                    'input' => $certificateID,
+                    'message' => 'Sertifikat tidak ditemukan'
+                ]);
+            }  
+        } catch (PDOException $e) {
+            error_log("Database error: " . $e->getMessage());
+            echo json_encode([
+                'status' => 'error', 
+                'message' => 'Terjadi kesalahan database'
+            ]);
+        }   
+    } else {
+        echo json_encode([
+            'status' => 'invalid', 
+            'message' => 'Format ID sertifikat tidak valid. Contoh: YMP-S-011711202406'
+        ]);
+    }
+} else {
+    header('HTTP/1.1 405 Method Not Allowed');
+    echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+}
+?>
+```
+
+---
+
+
+## 📌 cek-sertifikat-seminar.php: `cek-sertifikat-seminar.php`
+
+
+### Code
+
+```php
+<?php
+// Debugging: Menampilkan input yang diterima
+error_log(print_r($_POST, true));
+// === Fetch konten dari API Node.js ===
+$api_url = "http://localhost:5000/api/page-management/";
+$response = @file_get_contents($api_url);
+
+if ($response === FALSE) {
+    $data = []; // fallback kosong
+} else {
+    $data = json_decode($response, true);
+}
+
+// === Convert hasil ke associative array ===
+$content = [];
+if (is_array($data)) {
+    foreach ($data as $item) {
+        $content[$item['field_name']] = $item['content'];
+    }
+}
+?>
+
+<?php
+// Fetch konten dari API Node.js
+
+?>
+<?php include 'templates/header.php'; ?>
+<style>
+    .mfp-content {
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .mfp-bg {
+        background: rgba(0, 0, 0, 0.8);
+    }
+
+    .mfp-wrap {
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        background: #ffffff;
+    }
+
+    .white-popup {
+        position: relative;
+        background: #FFF;
+        padding: 20px;
+        width: auto;
+        max-width: 500px;
+        margin: 20px auto;
+        text-align: center;
+        border-radius: 10px;
+    }
+</style>
+
+<style>
+    .embed-responsive {
+        position: relative;
+        padding-bottom: 56.25%;
+        /* Aspect ratio 16:9 */
+        height: 0;
+        overflow: hidden;
+        background: #000;
+    }
+
+    .embed-responsive iframe {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+</style>
+
+<style>
+    .social-icon {
+        font-size: 24px;
+        color: #333;
+        margin: 0 10px;
+        transition: color 0.3s;
+    }
+
+    .social-icon:hover {
+        color: #fec809;
+    }
+</style>
+<style>
+    .whatsapp-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        background-color: #25D366;
+        /* Warna hijau WhatsApp */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        transition: background-color 0.3s;
+    }
+
+    .whatsapp-button:hover {
+        background-color: #128C7E;
+        /* Warna hijau WhatsApp gelap */
+        color: #fff;
+    }
+
+    .whatsapp-button i {
+        margin-right: 10px;
+    }
+
+    /* Certificate Preview Styles */
+    .certificate-preview {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        background: #f8f9fa;
+    }
+
+    .certificate-preview h5 {
+        color: #495057;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #fec809;
+        padding-bottom: 8px;
+    }
+
+    .drive-actions,
+    .pdf-preview .mt-2,
+    .image-preview .mt-2 {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .embed-responsive {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .embed-responsive iframe {
+        border: none;
+    }
+
+    .image-preview img {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #dee2e6;
+    }
+
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .certificate-preview {
+            padding: 15px;
+        }
+
+        .drive-actions,
+        .pdf-preview .mt-2,
+        .image-preview .mt-2 {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    }
+</style>
+
+<style>
+    .captcha-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .refresh-btn {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.5rem;
+    }
+
+    .refresh-btn:hover {
+        color: #fdc609;
+    }
+</style>
+
+<?php include 'templates/nav.php'; ?>
+
+<html>
+
+<head>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- Start Page Title Area -->
+    <div class="page-title-area item-bg1 jarallax" data-jarallax='{"speed": 0.3}'>
+        <div class="container">
+            <div class="page-title-content">
+                <h2><?= htmlspecialchars($content['header'] ?? 'Cek Sertifikat'); ?></h2>
+
+                <p><?= htmlspecialchars($content['description_1'] ?? 'Selamat datang di halaman Verifikasi Sertifikat Yuk-Mari Project. Halaman ini disediakan untuk membantu Anda mengecek kevalidan dan keaslian sertifikat yang diterbitkan oleh Yuk-Mari Project, baik untuk kegiatan Seminar/Webinar/Magang/Internship/Bootcamp/CyberMeetUp/Mentor.'); ?></p>
+            </div>
+        </div>
+    </div>
+    <!-- End Page Title Area -->
+
+    <!-- Start Blog Area -->
+    <section class="blog-area ptb-70">
+        <div class="container">
+            <div class="row">
+                <div class="container mt-5">
+                    <form id="form-cek-sertifikat-seminar">
+                        <div class="mb-3">
+                            <?= htmlspecialchars($content['btn_label_1'] ?? 'Cek Sertifikat Seminar/Webinar/Magang/Internship/Bootcamp/Mentor:'); ?>
+                            <input type="text" class="form-control" id="certificateID" placeholder=" <?= htmlspecialchars($content['input_placeholder'] ?? 'Masukkan ID Sertifikat. Contoh: YMP-S-011711202406'); ?>" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary"><?= htmlspecialchars($content['button'] ?? 'Cek Sertifikat'); ?></button>
+                    </form>
+                    <div id="result" class="mt-3"></div>
+
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- End Blog Area -->
+
+    <?php include 'templates/footer.php'; ?>
+
+    <script>
+        function refreshCaptcha() {
+            document.getElementById('captcha').src = 'lib/captcha/captcha.php?' + Math.random();
+        }
+    </script>
+
+    <!-- Magnific Popup Trigger Script -->
+    <script src="assets/js/virtual-classroom/popup_trigger.js"></script>
+
+    <!-- Include JavaScript -->
+    <script src="https://app.midtrans.com/snap/snap.js" data-client-key="Mid-client-a0Qdc090d4Z1OSXw"></script>
+    <script src="assets/js/virtual-classroom/midtrans_listener.js"></script>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- VIDEO BIMBEL -->
+    <script src="assets/js/virtual-classroom/video_bimbel.js"></script>
+    <script src="assets/js/virtual-classroom/sertifikat_cek.js"></script>
+</body>
+
+</html>
+```
+
+---
+
+
+## 📌 cek-sertifikat.php: `cek-sertifikat.php`
+
+
+### Code
+
+```php
+<?php
+header("Content-Type: application/json");
+header("Cache-Control: no-cache, must-revalidate");
+header("Expires: 0");
+
+require_once 'database.php';
+
+try {
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname";
+    $pdo = new PDO($dsn, $user, $password, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+} catch (PDOException $e) {
+    echo json_encode(['status' => 'error', 'message' => 'Gagal konek ke database: ' . $e->getMessage()]);
+    exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $certificateID = $_POST['certificateID'] ?? '';
+    if (preg_match('/^YMP-S-\d+$/', $certificateID)) {
+        $kode = preg_replace('/^YMP-S-/', '', $certificateID);
+        $stmt = $pdo->prepare("SELECT * FROM sertifikat WHERE kode = :kode");
+        $stmt->execute(['kode' => $kode]);
+        $data = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($data) {
+            echo json_encode([
+                'status' => 'valid',
+                'certificateID' => 'YMP-S-' . $data['kode'],
+                'nama' => $data['nama'],
+                'event' => $data['event'],
+                'hasil' => $data['status'],
+                'link' => $data['link']
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'invalid',
+                'input' => $certificateID,
+                'message' => 'Sertifikat tidak ditemukan di database'
+            ]);
+        }
+    } else {
+        echo json_encode([
+            'status' => 'invalid',
+            'message' => 'Format sertifikat tidak valid (contoh: YMP-S-040701202508)'
+        ]);
+    }
+} else {
+    header('HTTP/1.1 405 Method Not Allowed');
+}
+```
+
+---
+
+
+## 📌 database.php: `database.php`
+
+
+### Code
+
+```php
+<?php
+try {
+    if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+        require_once __DIR__ . '/vendor/autoload.php';
+        
+        if (file_exists(__DIR__ . '/.env')) {
+            $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+            $dotenv->load();
+        }
+    }
+} catch (Exception $e) {
+    error_log("Dotenv load error: " . $e->getMessage());
+}
+$host = $_ENV['DB_HOST'];
+$port = $_ENV['DB_PORT'];
+$dbname = $_ENV['DB_NAME'];
+$user = $_ENV['DB_USER'];
+$password = $_ENV['DB_PASSWORD'];
+
+try {
+    $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;sslmode=require";
+    
+    $pdo = new PDO($dsn, $user, $password, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::ATTR_TIMEOUT => 30
+    ]);
+    $pdo->query("SELECT 1");
+    
+} catch (PDOException $e) {
+    error_log("Database connection failed: " . $e->getMessage());
+    if (!headers_sent()) {
+        header('Content-Type: application/json');
+    }
+    die(json_encode([
+        'status' => 'error', 
+        'message' => 'Database connection failed: ' . $e->getMessage()
+    ]));
+}
+?>
+```
+
+---
+
+
+## 📌 sertif-page-management.php: `sertif-page-management.php`
+
+
+### Code
+
+```php
+<?php
+header('Content-Type: application/json');
+
+// Koneksi database (sesuaikan dengan koneksi Anda)
+require_once 'database.php';
+
+try {
+    $sql = "SELECT field_name, content FROM sertif_page_management WHERE section = 'detail_sertifikat'";
+    $stmt = $pdo->query($sql);
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $contentMap = [];
+    foreach ($results as $row) {
+        $contentMap[$row['field_name']] = $row['content'];
+    }
+    
+    echo json_encode($contentMap);
+    
+} catch (PDOException $e) {
+    // Return empty object jika error
+    echo json_encode(new stdClass());
+}
+?>
+```
+
+---
+
+
+## 📌 sertifikat.php: `sertifikat.php`
+
+
+### Code
+
+```php
+<?php
+require('lib/fpdf/fpdf.php');
+    
+class PDF extends FPDF
+{
+    // Fungsi untuk menampilkan konten sertifikat
+    function CertificateBody($nama, $judul_kursus, $background, $tanggal, $id_sertifikat, $logo, $cap)
+    {
+        // Tambahkan gambar background
+        $this->Image($background, 0, 0, $this->GetPageWidth(), $this->GetPageHeight());
+        
+        // Atur posisi untuk menambahkan teks di atas gambar
+        $this->SetXY(0, 81); // Atur posisi Y sesuai kebutuhan
+        $this->SetFont('Arial', '', 35);
+        $this->Cell(298, 10, $nama, 0, 1, 'C');
+
+        $this->SetXY(0, 110); // Atur posisi Y sesuai kebutuhan
+        $this->SetFont('Arial', '', 15);
+        $this->MultiCell(298, 7, 'Dalam menyelesaikan Kursus ' . $judul_kursus . ' ' . "\n" . 'dan menunjukan pemahaman tentang modul dan persyaratan kursusnya', 0, 'C');
+            
+        $this->SetXY(0, 135); // Atur posisi Y sesuai kebutuhan
+        $this->SetFont('Arial', 'B', 15);
+        $this->MultiCell(320, 7, 'Bandung, '.$tanggal, 0, 'C');
+        
+        $this->SetXY(0, 10); // Atur posisi Y sesuai kebutuhan
+        $this->SetFont('Arial', 'B', 7);
+        $this->MultiCell(135, 7, 'ID Sertifikat: YMP-S-'.$id_sertifikat, 0, 'C');
+        
+        // Tambahkan gambar logo di bawah teks
+        $this->Image($logo, 120, 135, 70); // ('file', x, y, width)
+
+            // Tambahkan gambar logo di bawah teks
+        $this->Image($cap, 130, 75, 30); // ('file', x, y, width)
+    }
+}
+
+// Pastikan library JWT di-load
+require_once 'lib/PHP-JWT/src/JWT.php'; // Path ke JWT library
+require_once 'lib/PHP-JWT/src/ExpiredException.php'; // Path ke JWT library
+require_once 'lib/PHP-JWT/src/Key.php'; // Path ke Key library
+    
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
+
+// Ambil token dari query string
+    $token = isset($_GET['token']) ? $_GET['token'] : null;
+
+    // Ambil jawaban dari form yang dikirim
+    $jawaban = isset($_POST['jawaban']) ? $_POST['jawaban'] : [];
+    
+    // Inisialisasi array untuk menyimpan pesan kesalahan
+    $errors = [];
+    
+    // Kunci rahasia yang sama dengan yang digunakan untuk menghasilkan JWT
+    $secretKey = 'C0fnR!23C9W*ox';
+    
+$jwtToken = $_GET['token'];
+
+// Decode dan verifikasi token
+$decoded = JWT::decode($jwtToken, new Key($secretKey, 'HS256'));
+$decoded_array = (array) $decoded;
+
+// Nama file yang akan dicek
+        $filename = 'id-sertifikat.txt';
+        
+        // Data yang akan dimasukkan ke sertifikat
+$nama = $decoded_array['nama_lengkap'] ? $decoded_array['nama_lengkap'] : 'John Doe';
+$judul_kursus = $decoded_array['judul_kursus'] ? $decoded_array['judul_kursus'] : null;
+$id_sertifikat = $decoded_array['transaction_id'] ? $decoded_array['transaction_id'] : null;
+        
+        // Teks yang ingin ditambahkan
+        $textToAdd = 'YMP-S-' . $id_sertifikat . '-' . $nama . '-' . $judul_kursus . '' .PHP_EOL .'';
+        
+        // Baca seluruh isi file
+        $fileContents = '';
+        if (file_exists($filename)) {
+            $fileContents = file_get_contents($filename);
+        }
+        
+        // Cek jika data sudah ada
+        if (strpos($fileContents, $textToAdd) === false) {
+            // Data tidak ada dalam file, jadi tambahkan
+            $file = fopen($filename, 'a');
+            if ($file) {
+                fwrite($file, $textToAdd);
+                fclose($file);
+            } else {
+                echo "Tidak dapat membuka file.";
+            }
+        } else {
+            echo null;
+        }
+        
+// Inisialisasi PDF
+$pdf = new PDF();
+
+// Set ukuran halaman ke A4
+$pdf->AddPage('L', 'A4'); // 'P' untuk portrait, 'A4' untuk ukuran A4
+
+$bulanIndonesia = array(
+    1 => 'Januari',
+    2 => 'Februari',
+    3 => 'Maret',
+    4 => 'April',
+    5 => 'Mei',
+    6 => 'Juni',
+    7 => 'Juli',
+    8 => 'Agustus',
+    9 => 'September',
+    10 => 'Oktober',
+    11 => 'November',
+    12 => 'Desember'
+);
+
+// Ambil hari, bulan, dan tahun saat ini
+$hari = date('d');
+$bulan = date('n'); // Menggunakan 'n' untuk mendapatkan angka bulan tanpa leading zero
+$tahun = date('Y');
+
+$background = 'sertifikat.png'; // Nama file gambar dari Canva
+$tanggal = $tanggal = $hari . ' ' . $bulanIndonesia[$bulan] . ' ' . $tahun;
+$logo = 'TTD.png'; // Nama file gambar logo
+$cap = 'cap_lulus.png';
+
+// Membuat sertifikat
+$pdf->CertificateBody($nama, $judul_kursus, $background, $tanggal, $id_sertifikat, $logo, $cap);
+
+// Output PDF
+$pdf->Output('I', 'certificate.pdf');
+?>
+```
+
+---
