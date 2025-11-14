@@ -1,11 +1,11 @@
-# Frontend (frontend_ymp_admin)
+# Frontend (front_end_ymp_admin)
 
 > **Catatan:** Dokumentasi bagian sertifikat untuk diimplementasikan ke admin ymp
 ---
 
 ## 📁 Folder Structure
 
-Struktur folder untuk modul **Sertifikat**:
+Struktur folder untuk modul **Frontend Sertifikat**:
 
 ```
 src/
@@ -1302,33 +1302,447 @@ export default Sidebar;
 
 ---
 
-## 📌 Styles: `src/styles/certificate.css`
+# Backend (back_end_ymp_admin)
 
-Style tambahan untuk tampilan sertifikat.
+> **Catatan:** Dokumentasi bagian sertifikat untuk connect ke database (DBeaver) dan dikirim ke Frontend melalui API ke admin ymp
+---
+
+## 📁 Folder Structure
+
+Struktur folder untuk modul **Backend Sertifikat**:
+
+```
+src/
+  config/
+      database.ts
+  controllers/
+      detailSertifController.ts
+      sertifPageManagementController.ts
+  models/
+      detailSertifManagement.ts
+      Sertifikat.ts
+      sertifPageManagement.ts
+  routes/
+      detailSertifRoutes.ts
+      sertifikatRoutes.ts
+      sertifikatYMP.ts
+app.ts
+```
+---
+## 📌 CardAdmin.tsx: `src/config/database.ts`
+
+(update database.ts).
 
 ### Code
 
-```css
-// paste kode asli file ini di sini
+```ts
+import { Pool } from "pg";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+pool
+  .connect()
+  .then(() => {
+    console.log("Connected to the database");
+  })
+  .catch((err) => {
+    console.error("Failed to connect to database:", err.message);
+  });
+
+export default pool;
 ```
 
 ---
 
-## 📝 Notes
+## 📌 CardAdmin.tsx: `src/controllers/detailSertifController.ts`
 
-* Pastikan semua file sudah di-import dengan benar.
-* Jika generate sertifikat menggunakan library tertentu (html2canvas, pdfkit, dll) sebutkan di README.
-* Jika membutuhkan environment variables, tambahkan section tambahan.
+
+### Code
+
+```ts
+import { Request, Response } from 'express';
+import * as Model from '../models/detailSertifManagement';
+
+// GET all
+export const listDetails = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rows = await Model.getAllDetails();
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+
+// GET by field name
+export const getDetail = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const field = req.params.field;
+    const row = await Model.getDetailByField(field);
+    if (!row) {
+      res.status(404).json({ message: 'Not found' });
+      return;
+    }
+    res.json(row);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+
+// CREATE
+export const createDetail = async (req: Request, res: Response): Promise<void> => {
+  const { field_name, content } = req.body;
+  if (!field_name || content == null) {
+    res.status(400).json({ message: 'Missing fields' });
+    return;
+  }
+
+  try {
+    await Model.insertDetail({ field_name, content });
+    res.status(201).json({ message: 'Created' });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// UPDATE
+export const updateDetail = async (req: Request, res: Response): Promise<void> => {
+  const id = Number(req.params.id);
+  const { content } = req.body;
+  try {
+    await Model.updateDetail(id, { content });
+    res.json({ message: 'Updated' });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// DELETE
+export const deleteDetail = async (req: Request, res: Response): Promise<void> => {
+  const id = Number(req.params.id);
+  try {
+    await Model.deleteDetail(id);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+```
 
 ---
 
-## ✅ Checklist Dokumentasi
+## 📌 CardAdmin.tsx: `src/controllers/sertifPageManagementController.ts`
 
-* [ ] Foldering jelas
-* [ ] Semua file ditulis di README
-* [ ] Setiap file ada deskripsi singkat
-* [ ] Kode asli sudah ditempel
+
+### Code
+
+```ts
+import { Request, Response } from 'express';
+import * as PageModel from '../models/sertifPageManagement';
+
+export const listPages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const pages = await PageModel.getAllPages();
+    res.json(pages);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+
+export const listPagesBySection = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const section = req.params.section;
+    const pages = await PageModel.getPagesBySection(section);
+    res.json(pages);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+
+export const getPage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    const page = await PageModel.getPageById(id);
+    if (!page) {
+      res.status(404).json({ message: 'Not found' });
+      return;
+    }
+    res.json(page);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+
+export const createPage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { section, field_name, content } = req.body;
+    if (!section || !field_name || !content) {
+      res.status(400).json({ message: 'Missing fields' });
+      return;
+    }
+    await PageModel.insertPage({ section, field_name, content });
+    res.status(201).json({ message: 'Created' });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const updatePage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    const { field_name, content } = req.body;
+    await PageModel.updatePage(id, { field_name, content });
+    res.json({ message: 'Updated' });
+  } catch (err: any) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const removePage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    await PageModel.deletePage(id);
+    res.json({ message: 'Deleted' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Database error' });
+  }
+};
+```
 
 ---
 
-Tinggal kamu isi detailnya + paste kode project kamu sendiri.
+## 📌 CardAdmin.tsx: `src/models/detailSertifManagement.ts`
+
+
+### Code
+
+```ts
+import pool from '../config/database';
+
+export interface DetailRow {
+  id?: number;
+  field_name: string;
+  content: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const getAllDetails = async (): Promise<DetailRow[]> => {
+  const res = await pool.query('SELECT * FROM detail_sertif_management ORDER BY id');
+  return res.rows;
+};
+
+export const getDetailByField = async (field_name: string): Promise<DetailRow | null> => {
+  const res = await pool.query('SELECT * FROM detail_sertif_management WHERE field_name = $1', [field_name]);
+  return res.rows[0] || null;
+};
+
+export const insertDetail = async (row: DetailRow): Promise<void> => {
+  await pool.query('INSERT INTO detail_sertif_management (field_name, content) VALUES ($1, $2)', [row.field_name, row.content]);
+};
+
+export const updateDetail = async (id: number, row: Partial<DetailRow>): Promise<void> => {
+  await pool.query('UPDATE detail_sertif_management SET content = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [row.content, id]);
+};
+
+export const deleteDetail = async (id: number): Promise<void> => {
+  await pool.query('DELETE FROM detail_sertif_management WHERE id = $1', [id]);
+};
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/models/Sertifikat.ts`
+
+### Code
+
+```ts
+import pool from '../config/database';
+
+export interface Certificate {
+    id?: number;
+    kode: string;
+    nama: string;
+    status: string;
+    event: string;
+    link: string;
+}
+export const getCertificates = async (): Promise<Certificate[]> => {
+    try {
+        const result = await pool.query('SELECT * FROM sertifikat ORDER BY created_at DESC');
+        return result.rows;
+    } catch (err) {
+        console.error('Error fetching sertifikat:', err);
+        throw new Error('Database error');
+    }
+};
+export const getCertificateByKode = async (kode: string): Promise<Certificate | null> => {
+    try {
+        const result = await pool.query('SELECT * FROM sertifikat WHERE kode = $1', [kode]);
+        return result.rows[0] || null;
+    } catch (err) {
+        console.error('Error fetching certificate by kode:', err);
+        throw new Error('Database error');
+    }
+};
+export const insertCertificate = async (data: Certificate): Promise<void> => {
+    const { kode, nama, status, event, link } = data;
+    if (!kode || !nama || !status || !event || !link)
+        throw new Error('Semua field wajib diisi');
+    try {
+        await pool.query(
+            'INSERT INTO sertifikat (kode, nama, status, event, link) VALUES ($1, $2, $3, $4, $5)',
+            [kode, nama, status, event, link]
+        );
+    } catch (err: any) {
+        console.error('Error inserting certificate:', err);
+        throw new Error(`Database error: ${err.message}`);
+    }
+};
+export const updateCertificate = async (id: number, data: Certificate): Promise<void> => {
+    const { kode, nama, status, event, link } = data;
+    try {
+        await pool.query(
+            'UPDATE sertifikat SET kode=$1, nama=$2, status=$3, event=$4, link=$5 WHERE id=$6',
+            [kode, nama, status, event, link, id]
+        );
+    } catch (err) {
+        console.error('Error updating certificate:', err);
+        throw new Error('Database error');
+    }
+};
+export const deleteCertificate = async (id: number): Promise<void> => {
+    try {
+        await pool.query('DELETE FROM sertifikat WHERE id = $1', [id]);
+    } catch (err) {
+        console.error('Error deleting certificate:', err);
+        throw new Error('Database error');
+    }
+};
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/models/sertifPageManagement.ts`
+
+
+### Code
+
+```ts
+import pool from '../config/database';
+
+export interface PageRow {
+  id?: number;
+  section: string;
+  field_name: string;
+  content: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const getAllPages = async (): Promise<PageRow[]> => {
+  const res = await pool.query('SELECT * FROM sertif_page_management ORDER BY id');
+  return res.rows;
+};
+
+export const getPagesBySection = async (section: string): Promise<PageRow[]> => {
+  const res = await pool.query('SELECT * FROM sertif_page_management WHERE section = $1 ORDER BY id', [section]);
+  return res.rows;
+};
+
+export const getPageById = async (id: number): Promise<PageRow | null> => {
+  const res = await pool.query('SELECT * FROM sertif_page_management WHERE id = $1', [id]);
+  return res.rows[0] || null;
+};
+
+export const insertPage = async (row: PageRow): Promise<void> => {
+  await pool.query(
+    'INSERT INTO sertif_page_management (section, field_name, content) VALUES ($1, $2, $3)',
+    [row.section, row.field_name, row.content]
+  );
+};
+
+export const updatePage = async (id: number, row: Partial<PageRow>): Promise<void> => {
+  await pool.query(
+    'UPDATE sertif_page_management SET field_name = $1, content = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+    [row.field_name, row.content, id]
+  );
+};
+
+export const deletePage = async (id: number): Promise<void> => {
+  await pool.query('DELETE FROM sertif_page_management WHERE id = $1', [id]);
+};
+
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+
+Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+
+### Code
+
+```ts
+
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+
+Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+
+### Code
+
+```ts
+
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+
+Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+
+### Code
+
+```ts
+
+```
+
+---
+
+## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+
+Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+
+### Code
+
+```ts
+
+```
+
+---
