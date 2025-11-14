@@ -2837,3 +2837,54 @@ $pdf->Output('I', 'certificate.pdf');
 ```
 
 ---
+
+
+# 📄 Sertifikat Module Documentation Template
+
+> **Catatan:** Ini hanya *template dokumentasi* untuk bagian **Sertifikat** saja. Tinggal kamu isi detailnya + paste kode asli dari projectmu.
+
+---
+
+
+## 🗄️ Database Structure
+
+Dokumentasi struktur database untuk modul **Sertifikat**.
+
+
+### 📁 Tabel: `detail_sertif_management`
+
+| Kolom      | Tipe Data    | Not Null | Default                                    | Keterangan       |
+| ---------- | ------------ | -------- | ------------------------------------------ | ---------------- |
+| id         | serial4      | true     | nextval('detail_sertif_management_id_seq') | Primary key      |
+| field_name | varchar(100) | true     | NULL                                       | Nama field       |
+| content    | text         | true     | NULL                                       | Isi konten       |
+| created_at | timestamp    | false    | CURRENT_TIMESTAMP                          | Timestamp dibuat |
+| updated_at | timestamp    | false    | CURRENT_TIMESTAMP                          | Timestamp update |
+
+### 📁 Tabel: `sertif_page_management`
+
+| Kolom      | Tipe Data    | Not Null | Default                                  | Keterangan       |
+| ---------- | ------------ | -------- | ---------------------------------------- | ---------------- |
+| id         | serial4      | true     | nextval('sertif_page_management_id_seq') | Primary key      |
+| section    | varchar(100) | true     | NULL                                     | Nama section     |
+| field_name | varchar(100) | true     | NULL                                     | Nama field       |
+| content    | text         | true     | NULL                                     | Isi konten       |
+| created_at | timestamp    | false    | CURRENT_TIMESTAMP                        | Timestamp dibuat |
+| updated_at | timestamp    | false    | CURRENT_TIMESTAMP                        | Timestamp update |
+
+### 📁 Tabel: `sertifikat`
+
+| Kolom      | Tipe Data    | Not Null | Default                      | Keterangan              |
+| ---------- | ------------ | -------- | ---------------------------- | ----------------------- |
+| id         | serial4      | true     | nextval('sertifikat_id_seq') | Primary key             |
+| kode       | varchar(50)  | true     | NULL                         | Kode sertifikat unik    |
+| nama       | varchar(100) | true     | NULL                         | Nama pemilik / penerima |
+| status     | varchar(20)  | true     | NULL                         | Status sertifikat       |
+| event      | varchar(100) | true     | NULL                         | Nama event              |
+| link       | varchar(255) | true     | NULL                         | URL file sertifikat     |
+| created_at | timestamp    | false    | CURRENT_TIMESTAMP            | Timestamp dibuat        |
+
+---
+
+---
+
