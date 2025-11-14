@@ -2836,15 +2836,6 @@ $pdf->Output('I', 'certificate.pdf');
 ?>
 ```
 
----
-
-
-# 📄 Sertifikat Module Documentation Template
-
-> **Catatan:** Ini hanya *template dokumentasi* untuk bagian **Sertifikat** saja. Tinggal kamu isi detailnya + paste kode asli dari projectmu.
-
----
-
 
 ## 🗄️ Database Structure
 
