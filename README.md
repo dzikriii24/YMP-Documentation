@@ -1198,27 +1198,6 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               {isOpen && <span>Sertifikat</span>}
             </NavLink>
           </li>
-
-          <li
-            className={
-              location.pathname === "/dashboard/ctf-ranking" ? "active" : ""
-            }
-          >
-            <NavLink to="/dashboard/ctf-ranking">
-              <TbMilitaryRank  />
-              {isOpen && <span>CTF Ranking</span>}
-            </NavLink>
-          </li>
-          <li
-            className={
-              location.pathname === "/dashboard/ctf-playground" ? "active" : ""
-            }
-          >
-            <NavLink to="/dashboard/ctf-playground">
-              <PiGameControllerFill />
-              {isOpen && <span>CTF Playground</span>}
-            </NavLink>
-          </li>
           <li
             className={
               location.pathname === "/dashboard/projectbimble" ? "active" : ""
@@ -1326,10 +1305,11 @@ src/
       detailSertifRoutes.ts
       sertifikatRoutes.ts
       sertifikatYMP.ts
+      sertifPageManagementRoutes.ts
 app.ts
 ```
 ---
-## 📌 CardAdmin.tsx: `src/config/database.ts`
+## 📌 database.ts: `src/config/database.ts`
 
 (update database.ts).
 
@@ -1366,7 +1346,7 @@ export default pool;
 
 ---
 
-## 📌 CardAdmin.tsx: `src/controllers/detailSertifController.ts`
+## 📌 detailSertifController.ts: `src/controllers/detailSertifController.ts`
 
 
 ### Code
@@ -1447,7 +1427,7 @@ export const deleteDetail = async (req: Request, res: Response): Promise<void> =
 
 ---
 
-## 📌 CardAdmin.tsx: `src/controllers/sertifPageManagementController.ts`
+## 📌 sertifPageManagementController.ts: `src/controllers/sertifPageManagementController.ts`
 
 
 ### Code
@@ -1533,7 +1513,7 @@ export const removePage = async (req: Request, res: Response): Promise<void> => 
 
 ---
 
-## 📌 CardAdmin.tsx: `src/models/detailSertifManagement.ts`
+## 📌 detailSertifManagement.ts: `src/models/detailSertifManagement.ts`
 
 
 ### Code
@@ -1574,7 +1554,7 @@ export const deleteDetail = async (id: number): Promise<void> => {
 
 ---
 
-## 📌 CardAdmin.tsx: `src/models/Sertifikat.ts`
+## 📌 Sertifikat.ts: `src/models/Sertifikat.ts`
 
 ### Code
 
@@ -1645,7 +1625,7 @@ export const deleteCertificate = async (id: number): Promise<void> => {
 
 ---
 
-## 📌 CardAdmin.tsx: `src/models/sertifPageManagement.ts`
+## 📌 sertifPageManagement.ts: `src/models/sertifPageManagement.ts`
 
 
 ### Code
@@ -1699,50 +1679,329 @@ export const deletePage = async (id: number): Promise<void> => {
 
 ---
 
-## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+## 📌 detailSertifRoutes.ts: `src/routes/detailSertifRoutes.ts`
 
-Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
 
 ### Code
 
 ```ts
+import { Router } from 'express';
+import * as Ctrl from '../controllers/detailSertifController';
+
+const detailSertifManagements = Router();
+
+detailSertifManagements.get('/', Ctrl.listDetails);
+detailSertifManagements.get('/field/:field', Ctrl.getDetail);
+detailSertifManagements.post('/', Ctrl.createDetail);
+detailSertifManagements.put('/:id', Ctrl.updateDetail);
+detailSertifManagements.delete('/:id', Ctrl.deleteDetail);
+
+export default detailSertifManagements;
+```
+
+---
+
+## 📌 sertifikatRoutes.ts: `src/routes/sertifikatRoutes.ts`
+
+### Code
+
+```ts
+// src/routes/certificateRoutes.ts
+import express from 'express';
+import {
+    getAllCertificates,
+    getByKode,
+    createCertificate,
+    updateCert,
+    deleteCert,
+} from '../routes/sertifikatYmp';
+
+const SertifikatRouter = express.Router();
+
+SertifikatRouter.get('/', getAllCertificates);
+SertifikatRouter.get('/:kode', getByKode);
+SertifikatRouter.post('/', createCertificate);
+SertifikatRouter.put('/:id', updateCert);
+SertifikatRouter.delete('/:id', deleteCert);
+
+export default SertifikatRouter;
+```
+
+---
+
+## 📌 sertifikatYMP.ts: `src/routes/sertifikatYMP.ts`
+
+### Code
+
+```ts
+// src/controllers/certificateController.ts
+import { Request, Response } from 'express';
+import {
+  getCertificates,
+  getCertificateByKode,
+  insertCertificate,
+  updateCertificate,
+  deleteCertificate,
+} from '../models/Sertifikat';
+
+export const getAllCertificates = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const data = await getCertificates();
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getByKode = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const kode = req.params.kode;
+    const data = await getCertificateByKode(kode);
+    if (!data) {
+      res.status(404).json({ message: 'Sertifikat tidak ditemukan' });
+      return;
+    }
+    res.json(data);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const createCertificate = async (req: Request, res: Response): Promise<void> => {
+  try {
+    await insertCertificate(req.body);
+    res.status(201).json({ message: 'Sertifikat berhasil ditambahkan' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const updateCert = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    await updateCertificate(id, req.body);
+    res.json({ message: 'Sertifikat berhasil diperbarui' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+export const deleteCert = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const id = Number(req.params.id);
+    await deleteCertificate(id);
+    res.json({ message: 'Sertifikat berhasil dihapus' });
+  } catch (err: any) {
+    res.status(400).json({ message: err.message });
+  }
+};
 
 ```
 
 ---
 
-## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
+## 📌 sertifPageManagementRoutes.ts: `src/routes/sertifPageManagementRoutes.ts`
 
-Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
 
 ### Code
 
 ```ts
+import { Router } from 'express';
+import * as Ctrl from '../controllers/sertifPageManagementController';
 
+const sertifPageManagements = Router();
+
+sertifPageManagements.get('/', Ctrl.listPages);
+sertifPageManagements.get('/section/:section', Ctrl.listPagesBySection);
+sertifPageManagements.get('/:id', Ctrl.getPage);
+sertifPageManagements.post('/', Ctrl.createPage);
+sertifPageManagements.put('/:id', Ctrl.updatePage);
+sertifPageManagements.delete('/:id', Ctrl.removePage);
+
+export default sertifPageManagements;
 ```
 
 ---
 
-## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
 
-Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
+## 📌 app.ts: `app.ts`
 
-### Code
-
-```ts
-
-```
-
----
-
-## 📌 CardAdmin.tsx: `src/components/admin/CardAdmin.tsx`
-
-Menambahkan Route Untuk Sertifikat (update CardAdmin.tsx).
 
 ### Code
 
 ```ts
+import express from "express";
+import dotenv from "dotenv";
+import bodyParser from "body-parser";
+import cors from "cors";
+import adminRoutes from "./routes/adminRoutes";
+import aboutUsRoutes from "./routes/aboutUsRoutes";
+import authRoutes from "./routes/authRoutes";
+import logoutRouter from "./routes/logout";
+import forgetPasswordRoute from "./routes/forgetPasswordRoute";
+import konsultasiRoutes from "./routes/konsultasiroute";
+import projectBimbleRoutes from "./routes/projectBimbleRoutes";
+import { Request, Response, NextFunction } from "express";
+import footerRoutes from "./routes/footerRoutes";
+import kontakKamiRouter from "./routes/KontakKamiRoutes";
+import programContentRouter from "./routes/ProgramContent";
+import projectTestimoniRoutes from "./routes/ProjectTestimoniRoutes";
+import KerjasamaDevRoute from "./routes/KerjasamaDevRoute";
+import logsRoutes from "./routes/logsRoute";
+import testimonialRoutes from "./routes/testimonialRoute";
+import projectTestiClientRoute from "./routes/ProjectTestiClientRoute";
+import developmentAppLogoRoute from "./routes/DevelopmentApplicationLogoRoute";
+import securityMitraLogoRoute from "./routes/securityMitraLogoRoute";
+import dokumentasiRoute from "./routes/dokumentasiRoute";
+import keunggulanRoute from "./routes/keunggulanRoute";
+import paket_1 from "./routes/paket1";
+import paket_2 from "./routes/paket2";
+import paket_3 from "./routes/paket3";
+import profileRoutes from "./routes/profileRoutes";
+import pageConfigRoutes from "./routes/pageConfigRoutes";
+import sertifikatRoutes from "./routes/sertifikatRoutes";
+import sertifPageManagements from "./routes/sertifPageManagementRoutes";
 
+dotenv.config();
+
+const app = express();
+app.set("trust proxy", true);
+
+// Configure CORS first
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "https://www.google.com",
+      "http://192.168.100.36:3000",
+      "https://ccc9-114-10-45-131.ngrok-free.app",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-timezone",
+      "Accept",
+      "Cross-Origin-Resource-Policy",
+    ],
+    exposedHeaders: ["Cross-Origin-Resource-Policy"],
+  })
+);
+
+// Set headers for CORS
+app.use((req, res, next) => {
+  res.header("Cross-Origin-Resource-Policy", "cross-origin");
+  next();
+});
+
+// ⚠️ FIX: Hapus duplikasi body parser, gunakan salah satu saja
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ⚠️ FIX: Atau gunakan bodyParser (pilih salah satu, jangan keduanya)
+// app.use(bodyParser.json({ limit: '10mb' }));
+// app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// ⚠️ FIX: Debug middleware untuk log semua request
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Query params:', req.query);
+  console.log('Body:', req.body);
+  next();
+});
+
+// ⚠️ FIX: Routes - Pastikan path base sudah benar
+app.use("/api/page-config", pageConfigRoutes);
+app.use("/api/sertifikat", sertifikatRoutes);
+app.use("/api/page-management", sertifPageManagements);
+
+// ⚠️ FIX: Tambahkan route test khusus untuk debugging
+app.get("/api/ctf-page-management/test", (req: Request, res: Response) => {
+  console.log("Test route accessed");
+  res.json({ 
+    message: "CTF Page Management API is working!",
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Other API routes
+app.use("/api", logsRoutes);
+app.use("/api", profileRoutes);
+app.use(
+  "/api",
+  adminRoutes,
+  aboutUsRoutes,
+  authRoutes,
+  logoutRouter,
+  forgetPasswordRoute,
+  konsultasiRoutes,
+  projectBimbleRoutes,
+  footerRoutes,
+  kontakKamiRouter,
+  programContentRouter,
+  projectTestimoniRoutes,
+  KerjasamaDevRoute,
+  testimonialRoutes,
+  projectTestiClientRoute,
+  developmentAppLogoRoute,
+  securityMitraLogoRoute,
+  dokumentasiRoute,
+  keunggulanRoute,
+  paket_1,
+  paket_2,
+  paket_3
+);
+
+// Basic route
+app.get("/about-us", (req, res) => {
+  res.json([{ id: 1, contentType: "text", content: "About Us content" }]);
+});
+
+// Global error handling middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("Error details:", err);
+  res.status(500).json({
+    error: "Internal Server Error",
+    message: err.message || "Something went wrong",
+  });
+});
+
+// 404 Handler untuk route yang tidak ditemukan
+app.use("*", (req: Request, res: Response) => {
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    error: "Route not found",
+    method: req.method,
+    url: req.originalUrl,
+    availableRoutes: [
+      "GET /api/ctf-page-management",
+      "GET /api/ctf-page-management/test",
+      "PUT /api/ctf-page-management/:id",
+      "GET /api/ctf-page-management/section/:section"
+    ]
+  });
+});
+
+// Health check endpoint
+app.get("/api/health", (req: Request, res: Response) => {
+  res.json({
+    status: "OK",
+    message: "CTF Ranking API is running",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Health check: http://localhost:${PORT}/api/health`);
+  console.log(`CTF Page Management Test: http://localhost:${PORT}/api/ctf-page-management/test`);
+  console.log(`CTF Page Management Main: http://localhost:${PORT}/api/ctf-page-management`);
+});
+
+export default app;
 ```
 
 ---
