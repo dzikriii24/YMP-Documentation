@@ -1298,6 +1298,7 @@ src/
       detailSertifController.ts
       sertifPageManagementController.ts
   models/
+      ctfRanking.ts
       detailSertifManagement.ts
       Sertifikat.ts
       sertifPageManagement.ts
@@ -1513,6 +1514,36 @@ export const removePage = async (req: Request, res: Response): Promise<void> => 
 ```
 
 ---
+## 📌 ctfRanking.ts: `src/models/ctfRanking.ts`
+
+
+### Code
+
+```ts
+export interface CTFRanking {
+  id?: number;
+  nama: string;
+  challenge_terakhir: string; // Fixed typo
+  level_terakhir: string;
+  score_terakhir: number;
+  total_score: number;
+  list_soal: string;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
+export interface PageConfig {
+  id?: number;
+  header_title: string;
+  page_title: string;
+  description: string;
+  updated_at?: Date;
+}
+```
+
+---
+
+
 
 ## 📌 detailSertifManagement.ts: `src/models/detailSertifManagement.ts`
 
@@ -1732,7 +1763,7 @@ export default SertifikatRouter;
 
 ---
 
-## 📌 database.ts: `src/routes/pageConfigRoutes.ts`
+## 📌 pageConfigRoutes.ts: `src/routes/pageConfigRoutes.ts`
 
 ### Code
 
