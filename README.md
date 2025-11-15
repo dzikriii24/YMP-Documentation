@@ -1303,6 +1303,7 @@ src/
       sertifPageManagement.ts
   routes/
       detailSertifRoutes.ts
+      pageConfigRoutes.ts
       sertifikatRoutes.ts
       sertifikatYMP.ts
       sertifPageManagementRoutes.ts
@@ -1679,6 +1680,8 @@ export const deletePage = async (id: number): Promise<void> => {
 
 ---
 
+
+
 ## 📌 detailSertifRoutes.ts: `src/routes/detailSertifRoutes.ts`
 
 
@@ -1728,6 +1731,28 @@ export default SertifikatRouter;
 ```
 
 ---
+
+## 📌 database.ts: `src/routes/pageConfigRoutes.ts`
+
+### Code
+
+```ts
+import { Router } from "express";
+import {
+  getPageConfig,
+  updatePageConfig,
+} from "../controllers/pageConfigController";
+
+const PageConfig = Router();
+
+PageConfig.get("/", getPageConfig);
+PageConfig.put("/", updatePageConfig);
+
+export default PageConfig;
+```
+
+---
+
 
 ## 📌 sertifikatYMP.ts: `src/routes/sertifikatYMP.ts`
 
